@@ -11,7 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 // Check if we're in dev mode with a dev token
 function isDevMode(): boolean {
   const token = localStorage.getItem('admin_token');
-  return import.meta.env.DEV && token?.startsWith('dev-token-');
+  return import.meta.env.DEV && (token?.startsWith('dev-token-') ?? false);
 }
 
 /**

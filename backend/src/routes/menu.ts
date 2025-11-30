@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { getAllMenuItems } from '../services/menuService';
 
 const router = Router();
@@ -8,7 +8,7 @@ const router = Router();
  * 
  * Get all available menu items
  */
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
     const menuItems = await getAllMenuItems();
     res.json({ menuItems });

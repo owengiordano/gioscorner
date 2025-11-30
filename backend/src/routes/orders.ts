@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { createOrder } from '../services/orderService';
 import { validateCreateOrder, checkValidation } from '../utils/validation';
 import { CreateOrderRequest } from '../types';
@@ -14,7 +14,7 @@ router.post(
   '/',
   validateCreateOrder,
   checkValidation,
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const orderData: CreateOrderRequest = {
         customer_name: req.body.customer_name,

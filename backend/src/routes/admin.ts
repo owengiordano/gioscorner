@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { 
   verifyAdminCredentials, 
   generateAdminToken, 
@@ -38,7 +38,7 @@ router.post(
   '/login',
   validateAdminLogin,
   checkValidation,
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
 
@@ -69,7 +69,7 @@ router.post(
  * Get all orders, optionally filtered by status
  * Query params: ?status=pending|accepted|denied
  */
-router.get('/orders', requireAdmin, async (req, res) => {
+router.get('/orders', requireAdmin, async (req: Request, res: Response) => {
   try {
     const status = req.query.status as string | undefined;
 
@@ -95,7 +95,7 @@ router.get('/orders', requireAdmin, async (req, res) => {
  * 
  * Get a single order by ID
  */
-router.get('/orders/:id', requireAdmin, async (req, res) => {
+router.get('/orders/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -127,7 +127,7 @@ router.post(
   requireAdmin,
   validateApproveOrder,
   checkValidation,
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { approval_message } = req.body;
@@ -159,7 +159,7 @@ router.post(
   requireAdmin,
   validateConfirmTimeAndSendInvoice,
   checkValidation,
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { total_price_cents } = req.body;
@@ -189,7 +189,7 @@ router.post(
 router.post(
   '/orders/:id/mark-paid',
   requireAdmin,
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -219,7 +219,7 @@ router.post(
   requireAdmin,
   validateDenyOrder,
   checkValidation,
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { admin_reason } = req.body;
@@ -245,7 +245,7 @@ router.post(
  * 
  * Get all menu items (including unavailable ones)
  */
-router.get('/menu', requireAdmin, async (req, res) => {
+router.get('/menu', requireAdmin, async (req: Request, res: Response) => {
   try {
     const menuItems = await getAllMenuItemsAdmin();
     res.json({ menuItems });
@@ -263,7 +263,7 @@ router.get('/menu', requireAdmin, async (req, res) => {
  * 
  * Get a single menu item by ID
  */
-router.get('/menu/:id', requireAdmin, async (req, res) => {
+router.get('/menu/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const menuItem = await getMenuItemById(id);
@@ -288,7 +288,7 @@ router.get('/menu/:id', requireAdmin, async (req, res) => {
  * 
  * Create a new menu item
  */
-router.post('/menu', requireAdmin, async (req, res) => {
+router.post('/menu', requireAdmin, async (req: Request, res: Response) => {
   try {
     const menuItemData = req.body;
 
@@ -328,7 +328,7 @@ router.post('/menu', requireAdmin, async (req, res) => {
  * 
  * Update an existing menu item
  */
-router.put('/menu/:id', requireAdmin, async (req, res) => {
+router.put('/menu/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -364,7 +364,7 @@ router.put('/menu/:id', requireAdmin, async (req, res) => {
  * 
  * Delete a menu item
  */
-router.delete('/menu/:id', requireAdmin, async (req, res) => {
+router.delete('/menu/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
