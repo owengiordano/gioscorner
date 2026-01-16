@@ -94,7 +94,7 @@ export async function validatePromoCode(code: string): Promise<ValidatePromoCode
     }
   }
 
-  if (promoCode.max_uses !== null && promoCode.current_uses >= promoCode.max_uses) {
+  if (promoCode.max_uses != null && promoCode.current_uses >= promoCode.max_uses) {
     return { valid: false, error: 'This promo code has reached its usage limit' };
   }
 
