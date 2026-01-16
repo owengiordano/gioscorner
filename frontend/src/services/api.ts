@@ -57,7 +57,6 @@ export async function getMenu(): Promise<{ menuItems: MenuItem[] }> {
 }
 
 export async function createOrder(orderData: CreateOrderRequest): Promise<{ message: string; order: Order }> {
-  console.log('Creating order with data:', orderData);
   const response = await fetch(`${API_URL}/api/orders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

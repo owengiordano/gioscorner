@@ -40,15 +40,6 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Admin Link */}
-          {!isAdmin && (
-            <Link
-              to="/admin"
-              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Admin
-            </Link>
-          )}
         </div>
 
         {/* Mobile Navigation */}
