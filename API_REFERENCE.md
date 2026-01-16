@@ -418,3 +418,5 @@ Admin endpoints use JWT (JSON Web Tokens) for authentication:
 3. Tokens expire after 24 hours (configurable in `backend/src/middleware/auth.ts`)
 
 
+
+

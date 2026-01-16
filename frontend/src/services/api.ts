@@ -3,7 +3,9 @@ import {
   CreateOrderRequest, 
   Order, 
   AdminLoginRequest, 
-  AdminLoginResponse 
+  AdminLoginResponse,
+  PromoCode,
+  ValidatePromoCodeResponse
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -60,6 +62,18 @@ export async function createOrder(orderData: CreateOrderRequest): Promise<{ mess
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(orderData),
+  });
+  return handleResponse(response);
+}
+
+/**
+ * Validate a promo code
+ */
+export async function validatePromoCode(code: string): Promise<ValidatePromoCodeResponse> {
+  const response = await fetch(`${API_URL}/api/orders/validate-promo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
   });
   return handleResponse(response);
 }
@@ -219,6 +233,50 @@ export async function deleteMenuItem(itemId: string): Promise<{ message: string 
 }
 
 /**
+ * Promo Code Management API endpoints
+ */
+
+export async function getPromoCodes(): Promise<{ promoCodes: PromoCode[] }> {
+  const response = await fetch(`${API_URL}/api/admin/promo-codes`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function getPromoCodeById(id: string): Promise<{ promoCode: PromoCode }> {
+  const response = await fetch(`${API_URL}/api/admin/promo-codes/${id}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function createPromoCode(promoCode: Partial<PromoCode>): Promise<{ message: string; promoCode: PromoCode }> {
+  const response = await fetch(`${API_URL}/api/admin/promo-codes`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(promoCode),
+  });
+  return handleResponse(response);
+}
+
+export async function updatePromoCode(id: string, updates: Partial<PromoCode>): Promise<{ message: string; promoCode: PromoCode }> {
+  const response = await fetch(`${API_URL}/api/admin/promo-codes/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(updates),
+  });
+  return handleResponse(response);
+}
+
+export async function deletePromoCode(id: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_URL}/api/admin/promo-codes/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+/**
  * Auth helpers
  */
 
@@ -233,6 +291,18 @@ export function isAuthenticated(): boolean {
 
 export function getAdminEmail(): string | null {
   return localStorage.getItem('admin_email');
+}
+
+/**
+ * Submit catering interest email
+ */
+export async function submitCateringInterest(email: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_URL}/api/catering-interest`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  return handleResponse(response);
 }
 
 /**

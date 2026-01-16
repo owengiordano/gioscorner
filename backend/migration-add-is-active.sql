@@ -18,3 +18,5 @@ WHERE is_active IS NULL;
 -- UPDATE menu_items SET is_active = false WHERE id IN ('item-id-1', 'item-id-2');
 
 
+
+

@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import About from './pages/About';
 import Menu from './pages/Menu';
+import CateringMenu from './pages/CateringMenu';
 import Order from './pages/Order';
 import HowToOrder from './pages/HowToOrder';
 import AdminLogin from './pages/admin/Login';
@@ -29,6 +30,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
             <Route path="/menu" element={<Menu />} />
+            <Route path="/catering-menu" element={<CateringMenu />} />
             <Route path="/order" element={<Order />} />
             <Route path="/how-to-order" element={<HowToOrder />} />
 

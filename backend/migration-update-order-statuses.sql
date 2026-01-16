@@ -40,3 +40,5 @@ WHERE status = 'accepted' AND stripe_invoice_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_orders_paid_at ON orders(paid_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_invoice_sent_at ON orders(invoice_sent_at DESC);
 
+
+

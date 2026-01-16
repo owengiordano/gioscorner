@@ -10,7 +10,8 @@ import {
   sendOrderApprovedToOwner,
   sendOrderDeniedToOwner
 } from './emailService';
-import { createInvoiceForOrder } from './stripeService';
+import { createPaymentLinkForOrder } from './stripeService';
+import { validatePromoCode, incrementPromoCodeUsage } from './promoCodeService';
 
 /**
  * Order Service
@@ -22,6 +23,19 @@ import { createInvoiceForOrder } from './stripeService';
  * Create a new order
  */
 export async function createOrder(orderData: CreateOrderRequest): Promise<Order> {
+  // Validate promo code if provided
+  let promoCodeId: string | undefined;
+  let discountPercent: number | undefined;
+
+  if (orderData.promo_code) {
+    const promoResult = await validatePromoCode(orderData.promo_code);
+    if (!promoResult.valid) {
+      throw new Error(promoResult.error || 'Invalid promo code');
+    }
+    promoCodeId = promoResult.promo_code!.id;
+    discountPercent = promoResult.promo_code!.discount_percent;
+  }
+
   // Insert order into database
   const { data, error } = await supabase
     .from('orders')
@@ -33,6 +47,8 @@ export async function createOrder(orderData: CreateOrderRequest): Promise<Order>
       date_needed: orderData.date_needed,
       notes: orderData.notes,
       status: 'pending',
+      promo_code_id: promoCodeId,
+      discount_percent: discountPercent,
     })
     .select()
     .single();
@@ -43,6 +59,13 @@ export async function createOrder(orderData: CreateOrderRequest): Promise<Order>
   }
 
   const order = data as Order;
+
+  // Increment promo code usage if one was used
+  if (promoCodeId) {
+    incrementPromoCodeUsage(promoCodeId).catch(err => 
+      console.error('Error incrementing promo code usage:', err)
+    );
+  }
 
   // Send email notifications (async, don't wait)
   Promise.all([
@@ -152,10 +175,17 @@ export async function confirmTimeAndSendInvoice(orderId: string, totalPriceCents
   }
 
   // Calculate price if not provided
-  const finalPrice = totalPriceCents || calculateTotalPrice(order.food_selection);
+  let originalPrice = totalPriceCents || calculateTotalPrice(order.food_selection);
+  let finalPrice = originalPrice;
 
-  // Create Stripe invoice
-  const { invoiceId, invoiceUrl } = await createInvoiceForOrder(order, finalPrice);
+  // Apply discount if promo code was used
+  if (order.discount_percent && order.discount_percent > 0) {
+    finalPrice = Math.round(originalPrice * (1 - order.discount_percent / 100));
+    console.log(`Applied ${order.discount_percent}% discount: $${(originalPrice / 100).toFixed(2)} -> $${(finalPrice / 100).toFixed(2)}`);
+  }
+
+  // Create Stripe payment link with discounted price
+  const { paymentLinkId, paymentLinkUrl } = await createPaymentLinkForOrder(order, finalPrice);
 
   // Update order in database
   const { data, error } = await supabase
@@ -165,8 +195,9 @@ export async function confirmTimeAndSendInvoice(orderId: string, totalPriceCents
       time_confirmed_at: new Date().toISOString(),
       invoice_sent_at: new Date().toISOString(),
       total_price_cents: finalPrice,
-      stripe_invoice_id: invoiceId,
-      stripe_invoice_url: invoiceUrl,
+      original_price_cents: order.discount_percent ? originalPrice : null,
+      stripe_invoice_id: paymentLinkId,
+      stripe_invoice_url: paymentLinkUrl,
     })
     .eq('id', orderId)
     .select()

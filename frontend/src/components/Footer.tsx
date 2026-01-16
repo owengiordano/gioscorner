@@ -7,8 +7,7 @@ export default function Footer() {
           <div>
             <h3 className="text-white font-bold text-lg mb-4">Gio's Corner</h3>
             <p className="text-sm">
-              Quality catering services for your special events. Made with love and
-              care.
+              We make delicious, nutritious family meals and cater small events with care.
             </p>
           </div>
 
@@ -43,20 +42,21 @@ export default function Footer() {
           <div>
             <h3 className="text-white font-bold text-lg mb-4">Contact</h3>
             <ul className="space-y-2 text-sm">
-              <li>Email: orders@gioscorner.com</li>
-              <li>Phone: (555) 123-4567</li>
-              <li>Hours: Mon-Fri 9AM-6PM</li>
+              <li>Email: tara@gioscorner.com</li>
+              <li>Phone: (781) 654-7270</li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} Gio's Corner. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Gio's Hospitality LLC. All rights reserved.</p>
         </div>
       </div>
     </footer>
   );
 }
+
+
 
 
 

@@ -11,14 +11,18 @@ import {
   getMenuItems,
   createMenuItem,
   updateMenuItem,
-  deleteMenuItem
+  deleteMenuItem,
+  getPromoCodes,
+  createPromoCode,
+  updatePromoCode,
+  deletePromoCode
 } from '../../services/api';
-import { Order, MenuItem } from '../../types';
+import { Order, MenuItem, PromoCode } from '../../types';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'orders' | 'menu'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'promos'>('orders');
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,9 +49,22 @@ export default function AdminDashboard() {
     price_cents: 0,
     category: 'meals',
     serves: 1,
-    image_colors: ['#FF6B6B'],
     available_days: [0, 1, 2, 3, 4, 5, 6], // All days by default
     is_active: true, // Active by default
+  });
+
+  // Promo code management state
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
+  const [showPromoForm, setShowPromoForm] = useState(false);
+  const [editingPromoCode, setEditingPromoCode] = useState<PromoCode | null>(null);
+  const [promoFormData, setPromoFormData] = useState<Partial<PromoCode>>({
+    code: '',
+    description: '',
+    discount_percent: 10,
+    max_uses: undefined,
+    valid_from: new Date().toISOString().split('T')[0],
+    valid_until: undefined,
+    is_active: true,
   });
 
   useEffect(() => {
@@ -55,6 +72,8 @@ export default function AdminDashboard() {
       loadOrders();
     } else if (activeTab === 'menu') {
       loadMenuItems();
+    } else if (activeTab === 'promos') {
+      loadPromoCodes();
     }
   }, [statusFilter, activeTab]);
 
@@ -82,6 +101,22 @@ export default function AdminDashboard() {
       setMenuItems(data.menuItems);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load menu items');
+      if (err instanceof Error && err.message.includes('Unauthorized')) {
+        navigate('/admin');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadPromoCodes() {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await getPromoCodes();
+      setPromoCodes(data.promoCodes);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load promo codes');
       if (err instanceof Error && err.message.includes('Unauthorized')) {
         navigate('/admin');
       }
@@ -220,7 +255,6 @@ export default function AdminDashboard() {
       price_cents: 0,
       category: 'meals',
       serves: 1,
-      image_colors: ['#FF6B6B'],
       available_days: [0, 1, 2, 3, 4, 5, 6], // All days by default
       is_active: true, // Active by default
     });
@@ -276,31 +310,83 @@ export default function AdminDashboard() {
     }
   }
 
-  function handleAddColor() {
-    const colors = menuFormData.image_colors || [];
-    setMenuFormData({
-      ...menuFormData,
-      image_colors: [...colors, '#FF6B6B'],
+  // Promo code management functions
+  function handleAddPromoCode() {
+    setEditingPromoCode(null);
+    setPromoFormData({
+      code: '',
+      description: '',
+      discount_percent: 10,
+      max_uses: undefined,
+      valid_from: new Date().toISOString().split('T')[0],
+      valid_until: undefined,
+      is_active: true,
     });
+    setShowPromoForm(true);
   }
 
-  function handleRemoveColor(index: number) {
-    const colors = menuFormData.image_colors || [];
-    if (colors.length > 1) {
-      setMenuFormData({
-        ...menuFormData,
-        image_colors: colors.filter((_, i) => i !== index),
-      });
+  function handleEditPromoCode(promo: PromoCode) {
+    setEditingPromoCode(promo);
+    setPromoFormData({
+      code: promo.code,
+      description: promo.description || '',
+      discount_percent: promo.discount_percent,
+      max_uses: promo.max_uses,
+      valid_from: promo.valid_from ? promo.valid_from.split('T')[0] : undefined,
+      valid_until: promo.valid_until ? promo.valid_until.split('T')[0] : undefined,
+      is_active: promo.is_active,
+    });
+    setShowPromoForm(true);
+  }
+
+  async function handleDeletePromoCode(promoId: string) {
+    if (!confirm('Are you sure you want to delete this promo code?')) {
+      return;
+    }
+    
+    setActionLoading(true);
+    try {
+      await deletePromoCode(promoId);
+      alert('Promo code deleted successfully!');
+      loadPromoCodes();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete promo code');
+    } finally {
+      setActionLoading(false);
     }
   }
 
-  function handleColorChange(index: number, color: string) {
-    const colors = menuFormData.image_colors || [];
-    const newColors = [...colors];
-    newColors[index] = color;
-    setMenuFormData({
-      ...menuFormData,
-      image_colors: newColors,
+  async function handlePromoFormSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    
+    setActionLoading(true);
+    try {
+      if (editingPromoCode) {
+        // Update existing promo code
+        await updatePromoCode(editingPromoCode.id, promoFormData);
+        alert('Promo code updated successfully!');
+      } else {
+        // Add new promo code
+        await createPromoCode(promoFormData);
+        alert('Promo code created successfully!');
+      }
+      
+      setShowPromoForm(false);
+      setEditingPromoCode(null);
+      loadPromoCodes();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save promo code');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  function formatDateTime(dateString: string | undefined): string {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
   }
 
@@ -347,6 +433,16 @@ export default function AdminDashboard() {
               }`}
             >
               Menu Management
+            </button>
+            <button
+              onClick={() => setActiveTab('promos')}
+              className={`py-4 px-2 border-b-2 font-medium transition-colors ${
+                activeTab === 'promos'
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Promo Codes
             </button>
           </div>
         </div>
@@ -525,6 +621,19 @@ export default function AdminDashboard() {
                         <p className="text-2xl font-bold text-primary-600">
                           {formatPrice(order.total_price_cents)}
                         </p>
+                        {order.discount_percent && order.original_price_cents && (
+                          <p className="text-sm text-green-600">
+                            {order.discount_percent}% discount applied (was {formatPrice(order.original_price_cents)})
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {order.discount_percent && !order.total_price_cents && (
+                      <div className="mb-4 bg-green-50 p-3 rounded-lg">
+                        <p className="text-sm text-green-800">
+                          🎟️ Promo code applied: <strong>{order.discount_percent}% off</strong>
+                        </p>
                       </div>
                     )}
 
@@ -680,23 +789,6 @@ export default function AdminDashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {menuItems.map((item) => (
                       <div key={item.id} className="card">
-                        {/* Image Preview */}
-                        {item.image_colors && item.image_colors.length > 0 && (
-                          <div className="mb-4 -mx-6 -mt-6">
-                            <div className="relative w-full aspect-[4/3] bg-gray-50">
-                              <div
-                                className="absolute inset-0"
-                                style={{ backgroundColor: item.image_colors[0] }}
-                              />
-                              {item.image_colors.length > 1 && (
-                                <div className="absolute bottom-2 right-2 bg-white/90 px-2 py-1 rounded text-xs font-medium">
-                                  +{item.image_colors.length - 1} more
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
                         <h3 className="text-xl font-bold mb-2">{item.name}</h3>
                         <p className="text-gray-600 text-sm mb-3">{item.description}</p>
                         
@@ -745,6 +837,104 @@ export default function AdminDashboard() {
                           </button>
                           <button
                             onClick={() => handleDeleteMenuItem(item.id)}
+                            className="btn-danger flex-1"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* Promo Codes Tab */}
+        {activeTab === 'promos' && (
+          <>
+            {/* Promo Code Actions */}
+            <div className="card mb-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold">Promo Codes</h2>
+                  <p className="text-sm text-gray-600">Manage discount codes for orders</p>
+                </div>
+                <button
+                  onClick={handleAddPromoCode}
+                  className="btn-primary"
+                >
+                  + Add New Promo Code
+                </button>
+              </div>
+            </div>
+
+            {/* Loading State */}
+            {loading && <LoadingSpinner />}
+
+            {/* Error State */}
+            {error && (
+              <div className="card bg-red-50 border-2 border-red-200">
+                <p className="text-red-700">{error}</p>
+              </div>
+            )}
+
+            {/* Promo Codes List */}
+            {!loading && !error && (
+              <>
+                {promoCodes.length === 0 ? (
+                  <div className="card text-center text-gray-600">
+                    No promo codes found. Click "Add New Promo Code" to create one.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {promoCodes.map((promo) => (
+                      <div key={promo.id} className="card">
+                        <div className="flex justify-between items-start mb-3">
+                          <h3 className="text-2xl font-bold font-mono tracking-wider">
+                            {promo.code}
+                          </h3>
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                            promo.is_active 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {promo.is_active ? '✓ Active' : '✗ Inactive'}
+                          </span>
+                        </div>
+
+                        {promo.description && (
+                          <p className="text-gray-600 text-sm mb-3">{promo.description}</p>
+                        )}
+                        
+                        <div className="text-3xl font-bold text-primary-600 mb-4">
+                          {promo.discount_percent}% OFF
+                        </div>
+
+                        <div className="mb-4 pb-4 border-b space-y-2 text-sm">
+                          <p className="text-gray-600">
+                            <strong>Uses:</strong> {promo.current_uses}
+                            {promo.max_uses ? ` / ${promo.max_uses}` : ' (unlimited)'}
+                          </p>
+                          <p className="text-gray-600">
+                            <strong>Valid From:</strong> {formatDateTime(promo.valid_from)}
+                          </p>
+                          <p className="text-gray-600">
+                            <strong>Valid Until:</strong> {promo.valid_until ? formatDateTime(promo.valid_until) : 'No expiration'}
+                          </p>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => handleEditPromoCode(promo)}
+                            className="btn-secondary flex-1"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeletePromoCode(promo.id)}
                             className="btn-danger flex-1"
                           >
                             Delete
@@ -898,50 +1088,6 @@ export default function AdminDashboard() {
                   </select>
                 </div>
 
-                {/* Image Colors */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Image Placeholder Colors
-                  </label>
-                  <p className="text-xs text-gray-500 mb-3">
-                    Add color codes for placeholder images (will be replaced with actual images later)
-                  </p>
-                  <div className="space-y-2">
-                    {(menuFormData.image_colors || []).map((color, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          className="w-12 h-10 rounded border border-gray-300"
-                          value={color}
-                          onChange={(e) => handleColorChange(index, e.target.value)}
-                        />
-                        <input
-                          type="text"
-                          className="input-field flex-1"
-                          value={color}
-                          onChange={(e) => handleColorChange(index, e.target.value)}
-                          placeholder="#FF6B6B"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveColor(index)}
-                          disabled={(menuFormData.image_colors?.length || 0) <= 1}
-                          className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={handleAddColor}
-                      className="btn-secondary w-full"
-                    >
-                      + Add Color
-                    </button>
-                  </div>
-                </div>
-
                 {/* Available Days */}
                 <div>
                   <label className="block text-sm font-medium mb-2">
@@ -1059,6 +1205,203 @@ export default function AdminDashboard() {
                     className="btn-primary flex-1"
                   >
                     {editingMenuItem ? 'Update Item' : 'Add Item'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Promo Code Form Modal */}
+      {showPromoForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-lg w-full my-8">
+            <div className="p-6 max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-4">
+                {editingPromoCode ? 'Edit Promo Code' : 'Add New Promo Code'}
+              </h2>
+              
+              <form onSubmit={handlePromoFormSubmit} className="space-y-6">
+                {/* Code */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Promo Code <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    className="input-field font-mono uppercase"
+                    value={promoFormData.code}
+                    onChange={(e) =>
+                      setPromoFormData({ ...promoFormData, code: e.target.value.toUpperCase() })
+                    }
+                    placeholder="e.g., SUMMER20"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Code will be converted to uppercase
+                  </p>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Description (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={promoFormData.description}
+                    onChange={(e) =>
+                      setPromoFormData({ ...promoFormData, description: e.target.value })
+                    }
+                    placeholder="e.g., Summer sale discount"
+                  />
+                </div>
+
+                {/* Discount Percent */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Discount Percentage <span className="text-red-600">*</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max="100"
+                      className="input-field"
+                      value={promoFormData.discount_percent || ''}
+                      onChange={(e) =>
+                        setPromoFormData({ ...promoFormData, discount_percent: parseInt(e.target.value) || 0 })
+                      }
+                      placeholder="e.g., 20"
+                    />
+                    <span className="text-xl font-bold">%</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter a value between 1 and 100
+                  </p>
+                </div>
+
+                {/* Max Uses */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Maximum Uses (Optional)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="input-field"
+                    value={promoFormData.max_uses || ''}
+                    onChange={(e) =>
+                      setPromoFormData({ 
+                        ...promoFormData, 
+                        max_uses: e.target.value ? parseInt(e.target.value) : undefined 
+                      })
+                    }
+                    placeholder="Leave empty for unlimited"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leave empty for unlimited uses
+                  </p>
+                </div>
+
+                {/* Valid From */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Valid From
+                  </label>
+                  <input
+                    type="date"
+                    className="input-field"
+                    value={promoFormData.valid_from || ''}
+                    onChange={(e) =>
+                      setPromoFormData({ ...promoFormData, valid_from: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Valid Until */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Valid Until (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    className="input-field"
+                    value={promoFormData.valid_until || ''}
+                    onChange={(e) =>
+                      setPromoFormData({ 
+                        ...promoFormData, 
+                        valid_until: e.target.value || undefined 
+                      })
+                    }
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leave empty for no expiration
+                  </p>
+                </div>
+
+                {/* Is Active Toggle */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Status <span className="text-red-600">*</span>
+                  </label>
+                  <div className="flex gap-4">
+                    <label
+                      className={`flex-1 flex items-center justify-center gap-2 p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                        promoFormData.is_active
+                          ? 'border-green-600 bg-green-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="promo_is_active"
+                        checked={promoFormData.is_active === true}
+                        onChange={() => setPromoFormData({ ...promoFormData, is_active: true })}
+                        className="rounded-full"
+                      />
+                      <span className="font-medium">✓ Active</span>
+                    </label>
+                    <label
+                      className={`flex-1 flex items-center justify-center gap-2 p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                        promoFormData.is_active === false
+                          ? 'border-red-600 bg-red-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="promo_is_active"
+                        checked={promoFormData.is_active === false}
+                        onChange={() => setPromoFormData({ ...promoFormData, is_active: false })}
+                        className="rounded-full"
+                      />
+                      <span className="font-medium">✗ Inactive</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Form Actions */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPromoForm(false);
+                      setEditingPromoCode(null);
+                    }}
+                    className="btn-secondary flex-1"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={actionLoading}
+                    className="btn-primary flex-1"
+                  >
+                    {actionLoading ? 'Saving...' : editingPromoCode ? 'Update Promo Code' : 'Create Promo Code'}
                   </button>
                 </div>
               </form>

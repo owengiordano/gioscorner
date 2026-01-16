@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import menuRoutes from './routes/menu';
 import orderRoutes from './routes/orders';
 import adminRoutes from './routes/admin';
+import cateringRoutes from './routes/catering';
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +40,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/catering-interest', cateringRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -68,6 +70,8 @@ app.listen(PORT, () => {
 });
 
 export default app;
+
+
 
 
 

@@ -9,7 +9,6 @@ export default function Menu() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
-  const [carouselIndices, setCarouselIndices] = useState<Record<string, number>>({});
   const [error, setError] = useState('');
 
   const [foodSelection, setFoodSelection] = useState<FoodSelectionItem[]>([]);
@@ -34,25 +33,6 @@ export default function Menu() {
   // Format price
   function formatPrice(cents: number): string {
     return `$${(cents / 100).toFixed(2)}`;
-  }
-
-  // Carousel navigation
-  function nextImage(itemId: string, totalImages: number) {
-    setCarouselIndices((prev) => ({
-      ...prev,
-      [itemId]: ((prev[itemId] || 0) + 1) % totalImages,
-    }));
-  }
-
-  function prevImage(itemId: string, totalImages: number) {
-    setCarouselIndices((prev) => ({
-      ...prev,
-      [itemId]: ((prev[itemId] || 0) - 1 + totalImages) % totalImages,
-    }));
-  }
-
-  function getCarouselIndex(itemId: string): number {
-    return carouselIndices[itemId] || 0;
   }
 
   // Prevent body scroll when modal is open
@@ -143,62 +123,7 @@ export default function Menu() {
         {/* Active Menu Items */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {activeItems.map((item) => (
-            <div key={item.id} className="card overflow-hidden">
-              {/* Image Carousel */}
-              {item.image_colors && item.image_colors.length > 0 && (
-                <div className="mb-4 -mx-6 -mt-6 relative overflow-hidden">
-                  <div className="relative w-full aspect-[3/2] sm:aspect-[4/3] bg-gray-50">
-                    {/* Current Image */}
-                    <div
-                      className="absolute inset-0 transition-all duration-300"
-                      style={{ backgroundColor: item.image_colors[getCarouselIndex(item.id)] }}
-                    />
-                    
-                    {/* Navigation Buttons */}
-                    {item.image_colors.length > 1 && (
-                      <>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            prevImage(item.id, item.image_colors!.length);
-                          }}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-white/80 hover:bg-white rounded-full shadow-lg flex items-center justify-center text-gray-800 font-bold text-lg sm:text-xl z-10"
-                        >
-                          ‹
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            nextImage(item.id, item.image_colors!.length);
-                          }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-white/80 hover:bg-white rounded-full shadow-lg flex items-center justify-center text-gray-800 font-bold text-lg sm:text-xl z-10"
-                        >
-                          ›
-                        </button>
-                      </>
-                    )}
-                    
-                    {/* Dots Indicator */}
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                      {item.image_colors.map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCarouselIndices((prev) => ({ ...prev, [item.id]: index }));
-                          }}
-                          className={`w-2 h-2 rounded-full transition-all ${
-                            getCarouselIndex(item.id) === index
-                              ? 'bg-white w-6'
-                              : 'bg-white/50 hover:bg-white/75'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
+            <div key={item.id} className="card">
               {/* Clickable Content Area */}
               <div 
                 className="mb-4 cursor-pointer hover:bg-gray-50 -mx-6 px-6 py-2 transition-colors"
@@ -317,63 +242,13 @@ export default function Menu() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
               {comingSoonItems.map((item) => (
-                <div key={item.id} className="card overflow-hidden opacity-75">
+                <div key={item.id} className="card relative opacity-75">
                   {/* Coming Soon Badge */}
-                  <div className="absolute top-4 right-4 z-10 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-                    Coming Soon
+                  <div className="mb-3">
+                    <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                      Coming Soon
+                    </span>
                   </div>
-
-                  {/* Image Carousel */}
-                  {item.image_colors && item.image_colors.length > 0 && (
-                    <div className="mb-4 -mx-6 -mt-6 relative overflow-hidden">
-                      <div className="relative w-full aspect-[3/2] sm:aspect-[4/3] bg-gray-50">
-                        <div
-                          className="absolute inset-0 transition-all duration-300"
-                          style={{ backgroundColor: item.image_colors[getCarouselIndex(item.id)] }}
-                        />
-                        
-                        {item.image_colors.length > 1 && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                prevImage(item.id, item.image_colors!.length);
-                              }}
-                              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-white/80 hover:bg-white rounded-full shadow-lg flex items-center justify-center text-gray-800 font-bold text-lg sm:text-xl z-10"
-                            >
-                              ‹
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                nextImage(item.id, item.image_colors!.length);
-                              }}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-white/80 hover:bg-white rounded-full shadow-lg flex items-center justify-center text-gray-800 font-bold text-lg sm:text-xl z-10"
-                            >
-                              ›
-                            </button>
-                          </>
-                        )}
-                        
-                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                          {item.image_colors.map((_, index) => (
-                            <button
-                              key={index}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCarouselIndices((prev) => ({ ...prev, [item.id]: index }));
-                              }}
-                              className={`w-2 h-2 rounded-full transition-all ${
-                                getCarouselIndex(item.id) === index
-                                  ? 'bg-white w-6'
-                                  : 'bg-white/50 hover:bg-white/75'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   
                   <div 
                     className="mb-4 cursor-pointer hover:bg-gray-50 -mx-6 px-6 py-2 transition-colors"
@@ -434,63 +309,8 @@ export default function Menu() {
                 className="bg-white rounded-lg max-w-3xl w-full"
                 onClick={(e) => e.stopPropagation()}
               >
-              {/* Modal Header with Image Carousel */}
-              {selectedItem.image_colors && selectedItem.image_colors.length > 0 && (
-                <div className="relative overflow-hidden rounded-t-lg">
-                  <div className="relative w-full aspect-[3/2] sm:aspect-[4/3] bg-gray-50">
-                    {/* Current Image */}
-                    <div
-                      className="absolute inset-0 transition-all duration-300"
-                      style={{ backgroundColor: selectedItem.image_colors[getCarouselIndex(selectedItem.id)] }}
-                    />
-                    
-                    {/* Navigation Buttons */}
-                    {selectedItem.image_colors.length > 1 && (
-                      <>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            prevImage(selectedItem.id, selectedItem.image_colors!.length);
-                          }}
-                          className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center text-gray-800 font-bold text-lg sm:text-2xl z-10"
-                        >
-                          ‹
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            nextImage(selectedItem.id, selectedItem.image_colors!.length);
-                          }}
-                          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center text-gray-800 font-bold text-lg sm:text-2xl z-10"
-                        >
-                          ›
-                        </button>
-                      </>
-                    )}
-                    
-                    {/* Dots Indicator */}
-                    <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                      {selectedItem.image_colors.map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCarouselIndices((prev) => ({ ...prev, [selectedItem.id]: index }));
-                          }}
-                          className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all ${
-                            getCarouselIndex(selectedItem.id) === index
-                              ? 'bg-white w-6 sm:w-8'
-                              : 'bg-white/50 hover:bg-white/75'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
               {/* Modal Content */}
-              <div className="px-6 pb-6 pt-6">
+              <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h2 className="text-3xl font-bold mb-2">{selectedItem.name}</h2>

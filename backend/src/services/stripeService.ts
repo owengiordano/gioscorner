@@ -4,116 +4,114 @@ import { Order } from '../types';
 /**
  * Stripe Service
  * 
- * Handles Stripe invoice creation and payment processing.
+ * Handles Stripe payment link creation and payment processing.
  */
 
 /**
- * Create a Stripe invoice for an accepted order
+ * Create a Stripe Payment Link for an accepted order
  * 
- * @param order - The order to create an invoice for
+ * @param order - The order to create a payment link for
  * @param totalPriceCents - Total price in cents
- * @returns Object containing invoice ID and URL
+ * @returns Object containing payment link ID and URL
  */
-export async function createInvoiceForOrder(
+export async function createPaymentLinkForOrder(
   order: Order,
   totalPriceCents: number
-): Promise<{ invoiceId: string; invoiceUrl: string }> {
+): Promise<{ paymentLinkId: string; paymentLinkUrl: string }> {
   try {
-    // Step 1: Create or retrieve customer
-    const customers = await stripe.customers.list({
-      email: order.customer_email,
-      limit: 1,
-    });
-
-    let customer;
-    if (customers.data.length > 0) {
-      customer = customers.data[0];
-      console.log(`Using existing Stripe customer: ${customer.id}`);
-    } else {
-      customer = await stripe.customers.create({
-        email: order.customer_email,
-        name: order.customer_name,
-        address: {
-          line1: order.address,
-        },
-        metadata: {
-          order_id: order.id,
-        },
-      });
-      console.log(`Created new Stripe customer: ${customer.id}`);
+    // Build product name with discount info if applicable
+    let productName = `Gio's Corner Catering - ${order.date_needed}`;
+    if (order.discount_percent && order.discount_percent > 0) {
+      productName += ` (${order.discount_percent}% discount applied)`;
     }
 
-    // Step 2: Create invoice item
-    await stripe.invoiceItems.create({
-      customer: customer.id,
-      amount: totalPriceCents,
+    // Step 1: Create a one-time price for this order
+    const price = await stripe.prices.create({
+      unit_amount: totalPriceCents,
       currency: 'usd',
-      description: `Gio's Corner Catering - ${order.date_needed}`,
-      metadata: {
-        order_id: order.id,
-        date_needed: order.date_needed,
+      product_data: {
+        name: productName,
+        metadata: {
+          order_id: order.id,
+          customer_name: order.customer_name,
+          date_needed: order.date_needed,
+          discount_percent: order.discount_percent?.toString() || '0',
+        },
       },
     });
 
-    // Step 3: Create invoice
-    const invoice = await stripe.invoices.create({
-      customer: customer.id,
-      auto_advance: false, // Don't auto-finalize
-      collection_method: 'send_invoice',
-      days_until_due: 7,
-      description: `Catering order for ${order.date_needed}`,
+    console.log(`Created Stripe price: ${price.id}`);
+
+    // Step 2: Create a payment link with the price
+    const paymentLink = await stripe.paymentLinks.create({
+      line_items: [
+        {
+          price: price.id,
+          quantity: 1,
+        },
+      ],
       metadata: {
         order_id: order.id,
         customer_name: order.customer_name,
+        customer_email: order.customer_email,
+        date_needed: order.date_needed,
+      },
+      // Pre-fill customer email if possible
+      custom_fields: [],
+      // Allow customer to adjust quantity? No - it's a fixed order
+      after_completion: {
+        type: 'redirect',
+        redirect: {
+          url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/order-confirmed?order_id=${order.id}`,
+        },
       },
     });
 
-    // Step 4: Finalize the invoice to make it payable
-    const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
-
-    console.log(`✅ Created Stripe invoice ${finalizedInvoice.id} for order ${order.id}`);
+    console.log(`✅ Created Stripe payment link ${paymentLink.id} for order ${order.id}`);
 
     return {
-      invoiceId: finalizedInvoice.id,
-      invoiceUrl: finalizedInvoice.hosted_invoice_url || '',
+      paymentLinkId: paymentLink.id,
+      paymentLinkUrl: paymentLink.url,
     };
   } catch (error) {
-    console.error('❌ Failed to create Stripe invoice:', error);
-    throw new Error(`Failed to create Stripe invoice: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('❌ Failed to create Stripe payment link:', error);
+    throw new Error(`Failed to create Stripe payment link: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 /**
- * Retrieve invoice details from Stripe
+ * Retrieve payment link details from Stripe
  * 
- * @param invoiceId - Stripe invoice ID
- * @returns Invoice object
+ * @param paymentLinkId - Stripe payment link ID
+ * @returns Payment link object
  */
-export async function getInvoice(invoiceId: string) {
+export async function getPaymentLink(paymentLinkId: string) {
   try {
-    const invoice = await stripe.invoices.retrieve(invoiceId);
-    return invoice;
+    const paymentLink = await stripe.paymentLinks.retrieve(paymentLinkId);
+    return paymentLink;
   } catch (error) {
-    console.error('❌ Failed to retrieve Stripe invoice:', error);
-    throw new Error(`Failed to retrieve invoice: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('❌ Failed to retrieve Stripe payment link:', error);
+    throw new Error(`Failed to retrieve payment link: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 /**
- * Check if an invoice has been paid
+ * Deactivate a payment link (e.g., if order is cancelled)
  * 
- * @param invoiceId - Stripe invoice ID
- * @returns Boolean indicating payment status
+ * @param paymentLinkId - Stripe payment link ID
  */
-export async function isInvoicePaid(invoiceId: string): Promise<boolean> {
+export async function deactivatePaymentLink(paymentLinkId: string): Promise<void> {
   try {
-    const invoice = await getInvoice(invoiceId);
-    return invoice.status === 'paid';
+    await stripe.paymentLinks.update(paymentLinkId, {
+      active: false,
+    });
+    console.log(`✅ Deactivated payment link ${paymentLinkId}`);
   } catch (error) {
-    console.error('❌ Failed to check invoice payment status:', error);
-    return false;
+    console.error('❌ Failed to deactivate payment link:', error);
   }
 }
+
+
 
 
 

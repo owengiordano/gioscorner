@@ -26,6 +26,14 @@ import {
   updateMenuItem,
   deleteMenuItem
 } from '../services/menuService';
+import {
+  getAllPromoCodes,
+  getPromoCodeById,
+  createPromoCode,
+  updatePromoCode,
+  deletePromoCode,
+  validatePromoCode
+} from '../services/promoCodeService';
 
 const router = Router();
 
@@ -377,6 +385,176 @@ router.delete('/menu/:id', requireAdmin, async (req: Request, res: Response) => 
     console.error('Error deleting menu item:', error);
     res.status(500).json({ 
       error: 'Failed to delete menu item',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/promo-codes
+ * 
+ * Get all promo codes
+ */
+router.get('/promo-codes', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const promoCodes = await getAllPromoCodes();
+    res.json({ promoCodes });
+  } catch (error) {
+    console.error('Error fetching promo codes:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch promo codes',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/promo-codes/:id
+ * 
+ * Get a single promo code by ID
+ */
+router.get('/promo-codes/:id', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const promoCode = await getPromoCodeById(id);
+
+    if (!promoCode) {
+      res.status(404).json({ error: 'Promo code not found' });
+      return;
+    }
+
+    res.json({ promoCode });
+  } catch (error) {
+    console.error('Error fetching promo code:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch promo code',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * POST /api/admin/promo-codes
+ * 
+ * Create a new promo code
+ */
+router.post('/promo-codes', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const promoCodeData = req.body;
+
+    // Basic validation
+    if (!promoCodeData.code || promoCodeData.discount_percent === undefined) {
+      res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['code', 'discount_percent']
+      });
+      return;
+    }
+
+    // Validate discount_percent
+    if (typeof promoCodeData.discount_percent !== 'number' || 
+        promoCodeData.discount_percent <= 0 || 
+        promoCodeData.discount_percent > 100) {
+      res.status(400).json({ error: 'discount_percent must be a number between 1 and 100' });
+      return;
+    }
+
+    const promoCode = await createPromoCode(promoCodeData);
+
+    res.status(201).json({
+      message: 'Promo code created successfully',
+      promoCode,
+    });
+  } catch (error) {
+    console.error('Error creating promo code:', error);
+    res.status(500).json({ 
+      error: 'Failed to create promo code',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/promo-codes/:id
+ * 
+ * Update an existing promo code
+ */
+router.put('/promo-codes/:id', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    // Validate discount_percent if provided
+    if (updates.discount_percent !== undefined) {
+      if (typeof updates.discount_percent !== 'number' || 
+          updates.discount_percent <= 0 || 
+          updates.discount_percent > 100) {
+        res.status(400).json({ error: 'discount_percent must be a number between 1 and 100' });
+        return;
+      }
+    }
+
+    // Don't allow changing the ID
+    delete updates.id;
+
+    const promoCode = await updatePromoCode(id, updates);
+
+    res.json({
+      message: 'Promo code updated successfully',
+      promoCode,
+    });
+  } catch (error) {
+    console.error('Error updating promo code:', error);
+    res.status(500).json({ 
+      error: 'Failed to update promo code',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/promo-codes/:id
+ * 
+ * Delete a promo code
+ */
+router.delete('/promo-codes/:id', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    await deletePromoCode(id);
+
+    res.json({
+      message: 'Promo code deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting promo code:', error);
+    res.status(500).json({ 
+      error: 'Failed to delete promo code',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * POST /api/admin/promo-codes/validate
+ * 
+ * Validate a promo code (admin endpoint)
+ */
+router.post('/promo-codes/validate', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { code } = req.body;
+
+    if (!code) {
+      res.status(400).json({ error: 'Code is required' });
+      return;
+    }
+
+    const result = await validatePromoCode(code);
+    res.json(result);
+  } catch (error) {
+    console.error('Error validating promo code:', error);
+    res.status(500).json({ 
+      error: 'Failed to validate promo code',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }

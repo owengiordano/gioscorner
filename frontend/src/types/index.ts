@@ -43,6 +43,9 @@ export interface Order {
   stripe_invoice_id?: string;
   stripe_invoice_url?: string;
   total_price_cents?: number;
+  promo_code_id?: string;
+  discount_percent?: number;
+  original_price_cents?: number;
 }
 
 export interface CreateOrderRequest {
@@ -52,6 +55,7 @@ export interface CreateOrderRequest {
   food_selection: FoodSelectionItem[];
   date_needed: string;
   notes?: string;
+  promo_code?: string;
 }
 
 export interface AdminLoginRequest {
@@ -63,5 +67,25 @@ export interface AdminLoginResponse {
   token: string;
   email: string;
   message: string;
+}
+
+export interface PromoCode {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  code: string;
+  description?: string;
+  discount_percent: number;
+  max_uses?: number;
+  current_uses: number;
+  valid_from: string;
+  valid_until?: string;
+  is_active: boolean;
+}
+
+export interface ValidatePromoCodeResponse {
+  valid: boolean;
+  promo_code?: PromoCode;
+  error?: string;
 }
 

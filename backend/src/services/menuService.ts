@@ -134,3 +134,5 @@ export async function calculateTotalPrice(foodSelection: Array<{ menu_item_id: s
 }
 
 
+
+

@@ -197,7 +197,7 @@ export async function sendOrderApprovedToCustomer(order: Order): Promise<void> {
 }
 
 /**
- * Send invoice email to customer
+ * Send payment link email to customer
  * Status: approved_pending_time -> invoice_sent
  */
 export async function sendOrderInvoiceToCustomer(order: Order): Promise<void> {
@@ -207,14 +207,14 @@ export async function sendOrderInvoiceToCustomer(order: Order): Promise<void> {
     await resend.emails.send({
       from: `Gio's Corner <${FROM_EMAIL}>`,
       to: order.customer_email,
-      subject: '💳 Invoice for Your Gio\'s Corner Order',
+      subject: '💳 Payment Link for Your Gio\'s Corner Order',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2c3e50;">Invoice Ready for Your Order</h2>
+          <h2 style="color: #2c3e50;">Payment Ready for Your Order</h2>
           
           <p>Hi ${order.customer_name},</p>
           
-          <p>Thank you for confirming the delivery time! Your invoice is now ready.</p>
+          <p>Thank you for confirming the delivery time! Your order is ready for payment.</p>
           
           <div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
             <h3 style="margin-top: 0; color: #155724;">Order Confirmed</h3>
@@ -232,7 +232,7 @@ export async function sendOrderInvoiceToCustomer(order: Order): Promise<void> {
           <div style="margin: 30px 0; text-align: center;">
             <a href="${order.stripe_invoice_url}" 
                style="background: #007bff; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; display: inline-block; font-size: 16px;">
-              Pay Invoice Now
+              Pay Now
             </a>
           </div>
           
@@ -251,9 +251,9 @@ export async function sendOrderInvoiceToCustomer(order: Order): Promise<void> {
       `,
     });
     
-    console.log(`✅ Invoice email sent to customer ${order.customer_email}`);
+    console.log(`✅ Payment link email sent to customer ${order.customer_email}`);
   } catch (error) {
-    console.error('❌ Failed to send invoice email to customer:', error);
+    console.error('❌ Failed to send payment link email to customer:', error);
   }
 }
 
@@ -366,6 +366,44 @@ export async function sendOrderDeniedToOwner(order: Order): Promise<void> {
     console.log(`✅ Denial confirmation sent to owner for order ${order.id}`);
   } catch (error) {
     console.error('❌ Failed to send denial confirmation to owner:', error);
+  }
+}
+
+/**
+ * Send catering interest notification to owner (tara@gioscorner.com)
+ */
+export async function sendCateringInterestNotification(customerEmail: string): Promise<void> {
+  const CATERING_EMAIL = 'tara@gioscorner.com';
+  
+  try {
+    const result = await resend.emails.send({
+      from: `Gio's Corner <${FROM_EMAIL}>`,
+      to: CATERING_EMAIL,
+      subject: `🍽️ New Catering Menu Interest - ${customerEmail}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2D3B2D;">New Catering Menu Interest</h2>
+          
+          <p>Someone has signed up to receive updates about the catering menu launch!</p>
+          
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Email:</strong> ${customerEmail}</p>
+            <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+          
+          <p style="color: #6c757d; font-size: 14px;">
+            Add this email to your launch notification list.
+          </p>
+        </div>
+      `,
+    });
+    
+    console.log(`✅ Catering interest notification sent for ${customerEmail}`);
+    console.log('   Resend response:', JSON.stringify(result));
+  } catch (error) {
+    console.error('❌ Failed to send catering interest notification:', error);
+    console.error('   Error details:', JSON.stringify(error, null, 2));
+    throw error; // Re-throw so the API can return an error to the user
   }
 }
 

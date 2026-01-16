@@ -68,15 +68,32 @@ export const validateCreateOrder = [
       // Parse the date string as a local date (not UTC)
       const [year, month, day] = value.split('-').map(Number);
       const requestedDate = new Date(year, month - 1, day); // month is 0-indexed
+      requestedDate.setHours(0, 0, 0, 0); // Start of requested day
       
       const now = new Date();
-      const minDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+      const cutoffHour = 15; // 3pm cutoff
       
-      // Compare just the date parts (ignore time)
-      requestedDate.setHours(23, 59, 59, 999); // Set to end of day for comparison
+      // Calculate minimum allowed date based on 3pm cutoff
+      // If before 3pm, minimum is tomorrow
+      // If 3pm or later, minimum is day after tomorrow
+      const minDate = new Date(now);
+      minDate.setHours(0, 0, 0, 0); // Start of today
+      
+      if (now.getHours() < cutoffHour) {
+        // Before 3pm - minimum is tomorrow
+        minDate.setDate(minDate.getDate() + 1);
+      } else {
+        // 3pm or later - minimum is day after tomorrow
+        minDate.setDate(minDate.getDate() + 2);
+      }
       
       if (requestedDate < minDate) {
-        throw new Error('Date must be at least 24 hours in advance');
+        const minDateFormatted = minDate.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        throw new Error(`Orders must be placed by 3:00 PM the day before delivery. The earliest available date is ${minDateFormatted}.`);
       }
       
       return true;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { createOrder, getMenu } from '../services/api';
-import { MenuItem, FoodSelectionItem } from '../types';
+import { createOrder, getMenu, validatePromoCode } from '../services/api';
+import { MenuItem, FoodSelectionItem, PromoCode } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Order() {
@@ -26,6 +26,12 @@ export default function Order() {
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
+
+  // Promo code state
+  const [promoCode, setPromoCode] = useState('');
+  const [promoCodeValidating, setPromoCodeValidating] = useState(false);
+  const [appliedPromoCode, setAppliedPromoCode] = useState<PromoCode | null>(null);
+  const [promoCodeError, setPromoCodeError] = useState('');
 
   // Load menu items
   useEffect(() => {
@@ -55,11 +61,61 @@ export default function Order() {
     return `$${(cents / 100).toFixed(2)}`;
   }
 
-  // Calculate minimum date (24 hours from now)
+  // Calculate minimum date based on 3pm cutoff rule
+  // Orders must be placed by 3pm the day before
   function getMinDate(): string {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+    const now = new Date();
+    const cutoffHour = 15; // 3pm
+    
+    // If it's before 3pm, minimum is tomorrow
+    // If it's 3pm or later, minimum is day after tomorrow
+    if (now.getHours() < cutoffHour) {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return tomorrow.toISOString().split('T')[0];
+    } else {
+      const dayAfterTomorrow = new Date(now);
+      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+      return dayAfterTomorrow.toISOString().split('T')[0];
+    }
+  }
+
+  // Get the next available date considering both cutoff time and available days
+  function getNextAvailableDate(): { date: string; message: string } | null {
+    const now = new Date();
+    const cutoffHour = 15; // 3pm
+    const availableDays = getAvailableDaysForSelection();
+    
+    // Start from minimum date
+    let checkDate = new Date(getMinDate() + 'T00:00:00');
+    
+    // If there are day restrictions, find the next valid day
+    if (availableDays && availableDays.length < 7) {
+      // Find the next available day within the next 14 days
+      for (let i = 0; i < 14; i++) {
+        if (availableDays.includes(checkDate.getDay())) {
+          break;
+        }
+        checkDate.setDate(checkDate.getDate() + 1);
+      }
+    }
+    
+    const dateStr = checkDate.toISOString().split('T')[0];
+    const formattedDate = checkDate.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    // Determine if we're past the cutoff
+    const isPastCutoff = now.getHours() >= cutoffHour;
+    
+    return {
+      date: dateStr,
+      message: isPastCutoff 
+        ? `Orders must be placed by 3:00 PM the day before delivery. The next available date is ${formattedDate}.`
+        : `Orders must be placed by 3:00 PM the day before delivery.`
+    };
   }
 
   // Get the intersection of available days from all selected items
@@ -142,6 +198,7 @@ export default function Order() {
       await createOrder({
         ...formData,
         food_selection: foodSelection,
+        promo_code: appliedPromoCode?.code,
       });
 
       setSubmitSuccess(true);
@@ -154,6 +211,8 @@ export default function Order() {
         notes: '',
       });
       setFoodSelection([]);
+      setAppliedPromoCode(null);
+      setPromoCode('');
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Failed to submit order');
       console.error(err);
@@ -168,6 +227,49 @@ export default function Order() {
       const menuItem = menuItems.find((m) => m.id === item.menu_item_id);
       return total + (menuItem ? menuItem.price_cents * item.quantity : 0);
     }, 0);
+  }
+
+  // Calculate discounted total
+  function calculateDiscountedTotal(): number {
+    const total = calculateTotal();
+    if (appliedPromoCode) {
+      return Math.round(total * (1 - appliedPromoCode.discount_percent / 100));
+    }
+    return total;
+  }
+
+  // Handle promo code validation
+  async function handleApplyPromoCode() {
+    if (!promoCode.trim()) {
+      setPromoCodeError('Please enter a promo code');
+      return;
+    }
+
+    setPromoCodeValidating(true);
+    setPromoCodeError('');
+
+    try {
+      const result = await validatePromoCode(promoCode.trim());
+      if (result.valid && result.promo_code) {
+        setAppliedPromoCode(result.promo_code);
+        setPromoCodeError('');
+      } else {
+        setPromoCodeError(result.error || 'Invalid promo code');
+        setAppliedPromoCode(null);
+      }
+    } catch (err) {
+      setPromoCodeError('Failed to validate promo code');
+      setAppliedPromoCode(null);
+    } finally {
+      setPromoCodeValidating(false);
+    }
+  }
+
+  // Remove applied promo code
+  function handleRemovePromoCode() {
+    setAppliedPromoCode(null);
+    setPromoCode('');
+    setPromoCodeError('');
   }
 
   if (loading) {
@@ -240,11 +342,78 @@ export default function Order() {
               );
             })}
           </ul>
-          <div className="border-t pt-4 flex justify-between items-center">
-            <span className="text-lg font-bold">Total:</span>
-            <span className="text-2xl font-bold text-primary-600">
-              {formatPrice(calculateTotal())}
-            </span>
+
+          {/* Promo Code Section */}
+          <div className="border-t pt-4 mb-4">
+            <label className="block text-sm font-medium mb-2">
+              Promo Code (Optional)
+            </label>
+            {appliedPromoCode ? (
+              <div className="flex items-center justify-between bg-green-100 border-2 border-green-300 rounded-lg p-3">
+                <div>
+                  <span className="font-semibold text-green-800">
+                    ✓ {appliedPromoCode.code}
+                  </span>
+                  <span className="text-green-700 ml-2">
+                    ({appliedPromoCode.discount_percent}% off)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemovePromoCode}
+                  className="text-red-600 hover:text-red-800 font-medium text-sm"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className={`input-field flex-1 ${promoCodeError ? 'border-red-500' : ''}`}
+                  value={promoCode}
+                  onChange={(e) => {
+                    setPromoCode(e.target.value.toUpperCase());
+                    setPromoCodeError('');
+                  }}
+                  placeholder="Enter promo code"
+                  disabled={promoCodeValidating}
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyPromoCode}
+                  disabled={promoCodeValidating || !promoCode.trim()}
+                  className="btn-secondary px-6"
+                >
+                  {promoCodeValidating ? 'Checking...' : 'Apply'}
+                </button>
+              </div>
+            )}
+            {promoCodeError && (
+              <p className="text-red-600 text-sm mt-1">{promoCodeError}</p>
+            )}
+          </div>
+
+          {/* Totals */}
+          <div className="border-t pt-4 space-y-2">
+            {appliedPromoCode && (
+              <>
+                <div className="flex justify-between items-center text-gray-600">
+                  <span>Subtotal:</span>
+                  <span className="line-through">{formatPrice(calculateTotal())}</span>
+                </div>
+                <div className="flex justify-between items-center text-green-600">
+                  <span>Discount ({appliedPromoCode.discount_percent}% off):</span>
+                  <span>-{formatPrice(calculateTotal() - calculateDiscountedTotal())}</span>
+                </div>
+              </>
+            )}
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-bold">Total:</span>
+              <span className="text-2xl font-bold text-primary-600">
+                {formatPrice(calculateDiscountedTotal())}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -319,9 +488,14 @@ export default function Order() {
                 value={formData.date_needed}
                 onChange={(e) => handleDateChange(e.target.value)}
               />
-              <p className="text-sm text-gray-500 mt-1">
-                Orders must be placed at least 24 hours in advance
-              </p>
+              {(() => {
+                const nextAvailable = getNextAvailableDate();
+                return (
+                  <p className="text-sm text-gray-600 mt-1">
+                    ⏰ {nextAvailable?.message}
+                  </p>
+                );
+              })()}
               {(() => {
                 const availableDays = getAvailableDaysForSelection();
                 if (availableDays && availableDays.length < 7) {
@@ -376,5 +550,7 @@ export default function Order() {
     </div>
   );
 }
+
+
 
 

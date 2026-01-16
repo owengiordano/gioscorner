@@ -264,3 +264,5 @@ That's it! Your emails should work now. 🎉
 - **Domain Verification:** https://resend.com/docs/dashboard/domains/introduction
 - **DNS Help:** https://resend.com/docs/dashboard/domains/dns-providers
 
+
+

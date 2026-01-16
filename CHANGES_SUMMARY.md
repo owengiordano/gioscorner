@@ -264,3 +264,5 @@ const comingSoonItems = menuItems.filter(item => item.is_active === false);
 **Next Step:** Run the migration script in Supabase SQL Editor
 
 
+
+

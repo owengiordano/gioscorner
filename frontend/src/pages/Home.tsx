@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
-import heroImage from '../assets/gios-corner-img.jpg';
+import heroImage from '../assets/gios-corner-img.png';
 
 export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-primary-900 text-white pt-0 pb-0 md:py-32">
+      <section className="relative bg-primary-900 text-white pt-0 pb-10 md:py-32">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
@@ -17,7 +17,7 @@ export default function Home() {
             <div className="order-2 lg:order-1 py-0 md:py-0">
               <div className="inline-block mb-4">
                 <span className="bg-primary-700/40 px-4 py-2 rounded-full text-sm font-semibold border border-primary-700/50" style={{ color: '#efe5d9' }}>
-                  Haddonfield's Favorite
+                  Haddonfield
                 </span>
               </div>
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight text-white">
@@ -27,8 +27,8 @@ export default function Home() {
                 </span>
               </h1>
               <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#efe5d9'  }} className="text-xl md:text-2xl mb-8 leading-relaxed">
-                Quality catering services for your special events. From intimate
-                gatherings to large celebrations, we've got you covered.
+              From our Italian kitchen to your dinner table & special events. Family Meals and 
+              Catering focused on Italian tradition and modern nutrition.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link 
@@ -66,7 +66,7 @@ export default function Home() {
             <div className="order-1 lg:order-2">
               <div className="relative flex justify-center lg:justify-start">
                 {/* Image Container */}
-                <div className="relative transform hover:scale-105 transition-transform duration-500 w-3/5 md:w-3/4 lg:w-full">
+                <div className="relative transform mb-4 hover:scale-105 transition-transform duration-500 w-3/5 md:w-3/4 lg:w-full">
                   <img 
                     src={heroImage} 
                     alt="Gio's Corner - Haddonfield Sandwiches & More" 
@@ -90,8 +90,8 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-semibold mb-2">1. Browse Menu</h3>
               <p className="text-gray-600">
-                Check out our delicious catering options and choose what fits your
-                event.
+              Check out our Weekly Family Meal or Catering Menu Options and 
+              choose what works best for your event.
               </p>
             </div>
             <div className="text-center">
@@ -100,8 +100,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-semibold mb-2">2. Submit Request</h3>
               <p className="text-gray-600">
-                Fill out our simple order form with your event details and
-                preferences.
+              Fill out our simple Order Form with your event details/Family Meal date and delivery time preference.
               </p>
             </div>
             <div className="text-center">
@@ -126,12 +125,12 @@ export default function Home() {
               <span className="text-3xl mb-3 block">🍽️</span>
               <h3 className="font-semibold mb-2">Fresh Ingredients</h3>
               <p className="text-sm text-gray-600">
-                We use only the freshest, highest quality ingredients.
+              We are passionate about providing organic, sustainable, quality meals with consistency.
               </p>
             </div>
             <div className="card text-center">
               <span className="text-3xl mb-3 block">👨‍🍳</span>
-              <h3 className="font-semibold mb-2">Expert Chefs</h3>
+              <h3 className="font-semibold mb-2">Quality & Dedication</h3>
               <p className="text-sm text-gray-600">
                 Our experienced team brings passion to every dish.
               </p>
@@ -159,7 +158,7 @@ export default function Home() {
         <div className="container-custom text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Order?</h2>
           <p className="text-xl mb-8" style={{ color: '#efe5d9' }}>
-            Browse our menu and submit your catering request today!
+          Browse our menu and submit your Family Meal / Catering order today!
           </p>
           <Link to="/menu" style={{ background: '#efe5d9' }} className=" text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-block">
             Get Started
